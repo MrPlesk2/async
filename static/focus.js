@@ -1,6 +1,6 @@
 const API = {
     organizationList: "/orgsList",
-    analytics: "/api3/analitics", 
+    analytics: "/api3/analytics", 
     orgReqs: "/api3/reqBase",
     buhForms: "/api3/buh",
 };
@@ -8,33 +8,33 @@ const API = {
 async function run() {
     try {
         const orgOgrns = await sendRequest(API.organizationList);
-
         const ogrns = orgOgrns.join(",");
 
-        const requisites = await sendRequest(`${API.orgReqs}?ogrn=${ogrns}`);
+        const [requisites, analytics, buh] = await Promise.all([
+            sendRequest(`${API.orgReqs}?ogrn=${ogrns}`),
+            sendRequest(`${API.analytics}?ogrn=${ogrns}`),
+            sendRequest(`${API.buhForms}?ogrn=${ogrns}`)
+        ]);
+
         const orgsMap = reqsToMap(requisites);
-
-        const analytics = await sendRequest(`${API.analytics}?ogrn=${ogrns}`);
         addInOrgsMap(orgsMap, analytics, "analytics");
-
-        const buh = await sendRequest(`${API.buhForms}?ogrn=${ogrns}`);
         addInOrgsMap(orgsMap, buh, "buhForms");
 
         render(orgsMap, orgOgrns);
     } catch (error) {
         if (error.message.includes("Request failed with status")) {
-            const [_, status, statusText] = error.message.match(/Request failed with status (\d+) (.+)/) || [];
-            if (status && statusText) {
-                alert(`Ошибка запроса: Код ${status}, Статус: ${statusText}`);
+            const match = error.message.match(/Request failed with status (\d+) (.+)/);
+            if (match) {
+                alert(`Ошибка запроса: Код ${match[1]}, Статус: ${match[2]}`);
             } else {
                 alert(`Ошибка запроса: ${error.message}`);
             }
         } else {
             alert(`Ошибка: ${error.message}`);
         }
-        return; 
     }
 }
+
 
 run();
 
